@@ -259,8 +259,9 @@ const plansStore = getStore("plans-latest");
   });
 
 
- } catch (err: any) {
-  const message = err?.message ? String(err.message) : String(err);
-  const stack = err?.stack ? String(err.stack) : null;
-  return jsonResponse({ ok: false, error: message, stack, where: "sync-xplan" }, 500);
-}
+   } catch (err: any) {
+    const message = err?.message ? String(err.message) : String(err);
+    const stack = err?.stack ? String(err.stack) : null;
+    return jsonResponse({ ok: false, error: message, stack, where: "sync-xplan" }, 500);
+  }
+};
