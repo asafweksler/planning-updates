@@ -346,7 +346,7 @@ if (fields.changedAtField) {
         changedAt,
         xplanUrl,
         mavatUrl,
-        authorityLevel,
+        authorityLevel: "unknown",
         raw: attrs,
       });
     }
