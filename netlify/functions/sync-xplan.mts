@@ -51,6 +51,42 @@ function computePlanHash(p: any) {
     changedAt: p.changedAt,
   }));
 }
+function extractMavatUrlOrId(attrs: Record<string, any>, planNumber: string) {
+  // 1) אם יש URL של MAVAT כבר בתוך אחד השדות – נשתמש בו
+  for (const v of Object.values(attrs || {})) {
+    if (typeof v !== "string") continue;
+    const s = v.trim();
+    const m = s.match(/https?:\/\/mavat\.iplan\.gov\.il\/SV4\/1\/\d{6,14}\/310/);
+    if (m) {
+      const id = m[0].match(/SV4\/1\/(\d{6,14})\/310/)?.[1] ?? null;
+      return { mavatUrl: m[0], mavatId: id };
+    }
+  }
+
+  // 2) לחפש שדה “דמוי מזהה מבט”
+  const keyPatterns = [/mavat/i, /sv4/i, /iplan/i, /taba/i, /plan.?id/i, /pl.?id/i, /tochnit.?id/i];
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (!keyPatterns.some((p) => p.test(k))) continue;
+    const s = String(v ?? "").trim();
+    if (/^\d{6,14}$/.test(s)) {
+      return {
+        mavatUrl: `https://mavat.iplan.gov.il/SV4/1/${encodeURIComponent(s)}/310`,
+        mavatId: s,
+      };
+    }
+  }
+
+  // 3) אם מספר התכנית עצמו מספרי “ארוך” – לפעמים זה ה-ID
+  const pn = String(planNumber || "").trim();
+  if (/^\d{6,14}$/.test(pn)) {
+    return {
+      mavatUrl: `https://mavat.iplan.gov.il/SV4/1/${encodeURIComponent(pn)}/310`,
+      mavatId: pn,
+    };
+  }
+
+  return { mavatUrl: null, mavatId: null };
+}
 
 export default async (req: Request, context: Context) => {
   try {
@@ -105,6 +141,7 @@ const plansStore = getStore("plans-latest");
 
   for (const p of plans) {
     // Filter by authority level (local/district/national). Unknown is excluded.
+    const authorityLevel = classifyAuthority(p.committee);
     if (!p.authorityLevel || p.authorityLevel === "unknown" || !selectedLevels.includes(p.authorityLevel as any)) {
       continue;
     }
@@ -112,7 +149,7 @@ const plansStore = getStore("plans-latest");
     const key = `plan:${p.planId}`;
     const prev = (await plansStore.get(key, { type: "json" }).catch(() => null)) as StoredPlan | null;
 
-    const hash = computePlanHash(p);
+    const hash = computePlanHash({ ...p, authorityLevel });
     const current: StoredPlan = {
       planId: p.planId,
       planNumber: p.planNumber,
@@ -122,7 +159,7 @@ const plansStore = getStore("plans-latest");
       committee: p.committee,
       status: p.status,
       statusNorm: p.statusNorm,
-      authorityLevel: p.authorityLevel || "unknown",
+      authorityLevel,
       changedAt: p.changedAt,
       xplanUrl: (p as any).xplanUrl ?? null,
       mavatUrl: (p as any).mavatUrl ?? null,
