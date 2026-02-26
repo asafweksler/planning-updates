@@ -156,7 +156,7 @@ const authorityLevel = authorityLevelRaw === "unknown" ? "district" : authorityL
 if (!selectedLevels.includes(authorityLevel as any)) {
   continue;
 }
-    const authorityLevel = classifyAuthority(p.committee);
+    //const authorityLevel = classifyAuthority(p.committee);
     
     if (authorityLevel === "unknown" || !selectedLevels.includes(authorityLevel as any)) {
   continue;
