@@ -142,9 +142,10 @@ const plansStore = getStore("plans-latest");
   for (const p of plans) {
     // Filter by authority level (local/district/national). Unknown is excluded.
     const authorityLevel = classifyAuthority(p.committee);
-    if (!p.authorityLevel || p.authorityLevel === "unknown" || !selectedLevels.includes(p.authorityLevel as any)) {
-      continue;
-    }
+    
+    if (authorityLevel === "unknown" || !selectedLevels.includes(authorityLevel as any)) {
+  continue;
+}
 
     const key = `plan:${p.planId}`;
     const prev = (await plansStore.get(key, { type: "json" }).catch(() => null)) as StoredPlan | null;
