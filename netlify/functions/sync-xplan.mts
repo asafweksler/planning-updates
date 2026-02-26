@@ -88,6 +88,15 @@ function extractMavatUrlOrId(attrs: Record<string, any>, planNumber: string) {
   return { mavatUrl: null, mavatId: null };
 }
 
+function classifyAuthority(committee: string): "local" | "district" | "national" | "unknown" {
+  const s = String(committee || "").trim();
+  if (!s) return "unknown";
+  if (s.includes("מקומית")) return "local";
+  if (s.includes("מחוזית")) return "district";
+  if (s.includes("ארצית") || s.includes('ות"ל') || s.includes("ותל") || s.includes("מועצה ארצית")) return "national";
+  return "unknown";
+}
+
 export default async (req: Request, context: Context) => {
   try {
   if (req.method !== "POST") {
