@@ -150,6 +150,12 @@ const plansStore = getStore("plans-latest");
 
   for (const p of plans) {
     // Filter by authority level (local/district/national). Unknown is excluded.
+    const authorityLevelRaw = classifyAuthority(p.committee);
+const authorityLevel = authorityLevelRaw === "unknown" ? "district" : authorityLevelRaw;
+
+if (!selectedLevels.includes(authorityLevel as any)) {
+  continue;
+}
     const authorityLevel = classifyAuthority(p.committee);
     
     if (authorityLevel === "unknown" || !selectedLevels.includes(authorityLevel as any)) {
