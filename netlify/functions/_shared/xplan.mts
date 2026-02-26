@@ -186,6 +186,50 @@ const changedAtIsDate = !!(
     authorityField,
   };
 }
+function extractMavatUrlOrId(attrs: Record<string, any>, planNumber: string) {
+  // 1) אם יש URL של MAVAT כבר בתוך אחד השדות – נשתמש בו
+  for (const v of Object.values(attrs || {})) {
+    if (typeof v !== "string") continue;
+    const s = v.trim();
+    const m = s.match(/https?:\/\/mavat\.iplan\.gov\.il\/SV4\/1\/\d{6,14}\/310/);
+    if (m) {
+      const id = m[0].match(/SV4\/1\/(\d{6,14})\/310/)?.[1] ?? null;
+      return { mavatUrl: m[0], mavatId: id };
+    }
+  }
+
+  // 2) לחפש שדה “דמוי מזהה מבט”
+  const keyPatterns = [/mavat/i, /sv4/i, /iplan/i, /taba/i, /plan.?id/i, /pl.?id/i, /tochnit.?id/i];
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (!keyPatterns.some((p) => p.test(k))) continue;
+    const s = String(v ?? "").trim();
+    if (/^\d{6,14}$/.test(s)) {
+      return {
+        mavatUrl: `https://mavat.iplan.gov.il/SV4/1/${encodeURIComponent(s)}/310`,
+        mavatId: s,
+      };
+    }
+  }
+
+  // 3) אם מספר התכנית עצמו מספרי “ארוך” – לפעמים זה ה-ID
+  const pn = String(planNumber || "").trim();
+  if (/^\d{6,14}$/.test(pn)) {
+    return {
+      mavatUrl: `https://mavat.iplan.gov.il/SV4/1/${encodeURIComponent(pn)}/310`,
+      mavatId: pn,
+    };
+  }
+
+  return { mavatUrl: null, mavatId: null };
+}
+function classifyAuthority(committee: string): "local" | "district" | "national" | "unknown" {
+  const s = String(committee || "").trim();
+  if (!s) return "unknown";
+  if (s.includes("מקומית")) return "local";
+  if (s.includes("מחוזית")) return "district";
+  if (s.includes("ארצית") || s.includes("ות\"ל") || s.includes('ותל') || s.includes("מועצה ארצית")) return "national";
+  return "unknown";
+}
 
 export async function fetchRecentPlans(opts: {
   queryUrl: string;
@@ -286,7 +330,7 @@ if (fields.changedAtField) {
       if (!planId) continue;
 
       const xplanUrl = planNumber ? `https://ags.iplan.gov.il/xplan/?p1=${encodeURIComponent(planNumber)}` : null;
-      const m = extractMavatUrlOrId(attrs);
+      const m = extractMavatUrlOrId(attrs, planNumber);
       const mavatUrl = m.mavatUrl || buildMavatUrl(m.mavatId);
 
       plans.push({
